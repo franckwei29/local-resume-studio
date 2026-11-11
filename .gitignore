@@ -1,0 +1,11 @@
+node_modules/
+dist/
+out/
+release/
+.private/
+test-results/
+artifacts/
+*.sqlite*
+*.resume.json
+.DS_Store
+CVwizard核心功能需求说明.md
