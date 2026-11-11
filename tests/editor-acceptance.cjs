@@ -6,6 +6,8 @@ const path = require('node:path')
 
 async function main() {
   const home = await fs.mkdtemp(path.join(os.tmpdir(), 'resume-editor-'))
+  if (process.env.RESUME_TEST_SEED)
+    await fs.copyFile(process.env.RESUME_TEST_SEED, path.join(home, 'seed.json'))
   let app
   try {
     const binary = process.env.RESUME_STUDIO_EXECUTABLE

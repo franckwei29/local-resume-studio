@@ -395,7 +395,8 @@ function headerGroups(doc: Resume, content: Content, width: number, template: st
   const ink = dark ? darkInk(style.color) : style.color
   const hColor = dark ? ink : undefined
   const split = template === 'A3' || template === 'F4' || template === 'C3'
-  const mainW = split ? width * 0.51 : width
+  const mainW =
+    template === 'A3' ? width * 0.58 : template === 'F4' ? (width - 6) / 2 : split ? width * 0.51 : width
   const identity = new Column(style, mainW)
   const role = content.target?.text
   const title = doc.useTarget && role ? role : doc.title
@@ -443,6 +444,10 @@ function headerGroups(doc: Resume, content: Content, width: number, template: st
     const text: import('./model').Run = { text: c.text, href: c.href }
     const w = Math.min(contactWidth, Math.max(9, widthOf(c.text, size, text, style) + 0.5))
     const lines = new Column(style, w).rows(c.id, [text], { size, color: hColor })
+    if (template === 'A3' || template === 'F4') {
+      contacts.groups.push(group(lines, 0.5))
+      continue
+    }
     if (w + used > contactWidth) flush()
     if (lines.length > 2) {
       flush()
@@ -459,17 +464,20 @@ function headerGroups(doc: Resume, content: Content, width: number, template: st
     contacts.groups.length &&
     Math.max(paperHeight(identity.groups), paperHeight(contacts.groups)) < 78
   ) {
-    col.groups.push(
-      group([
-        parallel(
-          [
-            { groups: identity.groups, x: 0, width: mainW },
-            { groups: contacts.groups, x: mainW + 6, width: contactWidth },
-          ],
-          'header',
-        ),
-      ]),
+    const band = parallel(
+      [
+        { groups: identity.groups, x: 0, width: mainW },
+        { groups: contacts.groups, x: mainW + 6, width: contactWidth },
+      ],
+      'header',
     )
+    for (const cell of band.companions ?? []) {
+      const inIdentity = cell.x < mainW
+      if (template === 'A3')
+        cell.y += band.height - paperHeight(inIdentity ? identity.groups : contacts.groups)
+      if (template === 'F4' && !inIdentity) cell.y += (band.height - paperHeight(contacts.groups)) / 2
+    }
+    col.groups.push(group([band]))
   } else {
     if (split) shift(contacts.groups, 0, contactWidth)
     col.groups.push(...identity.groups, ...contacts.groups)
@@ -650,10 +658,18 @@ function decorate(
         art(page, m, headerBottom + 2.2, 210 - 2 * m, 0.2, color)
       }
     }
-    if (['A1', 'A3', 'F4'].includes(template) && header.length)
+    if (['A1', 'A3'].includes(template) && header.length)
       art(page, m, headerBottom + 1, 210 - 2 * m, 0.4, color)
-    if (['A3', 'F4'].includes(template) && header.length)
-      art(page, m + (210 - 2 * m) * 0.51 + 3, m, 0.3, Math.max(3, headerBottom - m), mid)
+    if (template === 'A3' && header.length) art(page, m, m - 2.5, 210 - 2 * m, 1.25, color)
+    if (template === 'F4' && header.length) {
+      const left = m - 2,
+        top = m - 2,
+        height = headerBottom - top + 2,
+        width = 210 - 2 * left
+      art(page, left, top, width / 2, height, pale)
+      art(page, left, top, width, height, undefined, color)
+      art(page, 105, top, 0.3, height, mid)
+    }
     if (template === 'D2') {
       const body = lines.filter((l) => l.entryId)
       if (body.length) {

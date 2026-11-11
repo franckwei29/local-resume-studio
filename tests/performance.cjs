@@ -26,7 +26,7 @@ async function run() {
     await expect(p.locator('#print-root')).toContainText('软件工程师0')
     const field = [],
       size = []
-    for (let i = 0; i < 38; i++) {
+    for (let i = 0; i < 54; i++) {
       const value = '软件工程师' + (i + 1)
       await p.evaluate((expected) => {
         const field = document.querySelector('input[aria-label="目标岗位"]')
@@ -59,7 +59,7 @@ async function run() {
       if (i > 2) field.push(ms)
     }
     await p.getByRole('button', { name: '排版', exact: true }).click()
-    for (let i = 0; i < 38; i++) {
+    for (let i = 0; i < 54; i++) {
       const increase = i % 2 === 0,
         label = increase ? '增大正文字号' : '减小正文字号'
       await p.evaluate((label) => {

@@ -13,6 +13,8 @@ async function main() {
     output = path.join(dir, 'draft.pdf'),
     backup = path.join(dir, 'draft.resume.json')
   await fs.mkdir(profile)
+  if (process.env.RESUME_TEST_SEED)
+    await fs.copyFile(process.env.RESUME_TEST_SEED, path.join(profile, 'seed.json'))
   let app,
     p,
     errors = []

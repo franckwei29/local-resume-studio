@@ -9,6 +9,8 @@ async function run() {
   const home = await fs.mkdtemp(path.join(os.tmpdir(), 'studio-file-check-'))
   let app
   try {
+    if (process.env.RESUME_TEST_SEED)
+      await fs.copyFile(process.env.RESUME_TEST_SEED, path.join(home, 'seed.json'))
     await makeImportFixtures(home)
     const executable = process.env.RESUME_STUDIO_EXECUTABLE
     app = await _electron.launch({
@@ -75,6 +77,7 @@ async function run() {
         (doc) => doc.name === file.split('.')[0],
       )
       assert(stored)
+      assert.equal(stored.templateId, '00')
       assert(stored.sections.some((sec) => sec.kind === 'education'))
       if (file.endsWith('.docx')) {
         const records = stored.sections.find((sec) => sec.kind === 'education').entries

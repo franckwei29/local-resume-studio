@@ -1,9 +1,9 @@
 {
   "name": "local-resume-studio",
   "productName": "简历工坊",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "离线双栏简历编辑器",
+  "description": "可离线编辑、试排和导出 31 款模板的 Mac 简历编辑器",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "npm run build && electron .",
@@ -16,7 +16,9 @@
     "test:import": "node tests/import-acceptance.cjs",
     "test:performance": "node tests/performance.cjs",
     "format:check": "prettier --check src electron scripts/*.cjs tests/*.cjs vite.config.ts",
-    "test:release": "node scripts/accept-release.cjs"
+    "test:release": "node scripts/accept-release.cjs",
+    "test:templates": "node tests/template-acceptance.cjs && node tests/template-recovery.cjs && node tests/template-navigation.cjs",
+    "test:template-pdf": "node tests/template-pdf.cjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-sc": "^5.2.0",
