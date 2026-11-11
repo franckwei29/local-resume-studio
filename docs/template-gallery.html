@@ -1,0 +1,2080 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>模板图册 · 简历工坊</title>
+    <style>
+      :root {
+        --ink: #172b27;
+        --quiet: #4f645c;
+        --line: #ced8cd;
+        --accent: #225d4b;
+        --soft: #e7eee3;
+        --desk: #f7f8f1;
+        font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--desk);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        color: inherit;
+      }
+      button:disabled {
+        cursor: default;
+      }
+      button:focus-visible,
+      input:focus-visible {
+        outline: 3px solid #bc702b;
+        outline-offset: 3px;
+      }
+      .wrap {
+        max-width: 1480px;
+        margin: auto;
+        padding: 0 clamp(18px, 4.4vw, 78px);
+      }
+      header {
+        background: #203c33;
+        color: #f6f7ed;
+      }
+      .top {
+        height: 62px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand,
+      .activeBtn,
+      .searchLabel,
+      .row,
+      .controls,
+      .modalNav,
+      .bottom,
+      .modalTitle,
+      .toast {
+        display: flex;
+        align-items: center;
+      }
+      .brand {
+        gap: 10px;
+        font-size: 15px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+      }
+      .brandMark {
+        width: 23px;
+        height: 27px;
+        display: inline-block;
+        position: relative;
+        border: 1.5px solid #d9e6d4;
+        border-radius: 2px;
+      }
+      .brandMark:before {
+        content: '';
+        position: absolute;
+        inset: 4px 10px 4px 4px;
+        border-right: 1.5px solid #d9e6d4;
+      }
+      .brandMark:after {
+        content: '';
+        position: absolute;
+        inset: 5px 3px auto auto;
+        height: 6px;
+        width: 6px;
+        border-block: 1px solid #d9e6d4;
+      }
+      .activeBtn {
+        gap: 6px;
+        background: transparent;
+        border: 1px solid #789285;
+        border-radius: 5px;
+        color: inherit;
+        padding: 7px 11px;
+        font-size: 12px;
+      }
+      .activeBtn:hover {
+        background: #365448;
+      }
+      .activeBtn b {
+        font-weight: 650;
+      }
+      .intro {
+        padding-top: clamp(30px, 4.8vw, 64px);
+        padding-bottom: 25px;
+      }
+      .intro h1 {
+        font:
+          600 clamp(33px, 4.2vw, 61px)/1.1 'Songti SC',
+          'STSong',
+          serif;
+        letter-spacing: -0.06em;
+        margin: 0;
+        color: #223f35;
+      }
+      .intro p {
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--quiet);
+        margin: 13px 0 0;
+      }
+      .row {
+        gap: 20px;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        padding: 9px 0 20px;
+        flex-wrap: wrap;
+      }
+      #filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .filter,
+      .minor,
+      .navBtn,
+      .choice,
+      .solid {
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: #fff;
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+      .filter {
+        background: transparent;
+        font-size: 12px;
+      }
+      .filter:hover,
+      .choice:hover,
+      .minor:hover,
+      .navBtn:hover:not(:disabled) {
+        background: #edf2ea;
+      }
+      .filter[aria-pressed='true'],
+      .choice[aria-pressed='true'] {
+        background: #244d3c;
+        color: white;
+        border-color: #244d3c;
+      }
+      .searchLabel {
+        width: 195px;
+        max-width: 100%;
+        gap: 6px;
+        border: 1px solid #bfcbbf;
+        background: #fbfcf7;
+        border-radius: 5px;
+        padding: 7px 10px;
+      }
+      .searchLabel svg {
+        width: 15px;
+        height: 15px;
+        flex: none;
+      }
+      .searchLabel input {
+        font-size: 13px;
+        width: 100%;
+        border: 0;
+        background: transparent;
+        min-width: 0;
+        color: var(--ink);
+      }
+      .meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: var(--quiet);
+        margin: 18px 0 13px;
+      }
+      .meta strong {
+        color: var(--ink);
+        font-size: 14px;
+      }
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 22px 18px;
+        margin-bottom: 45px;
+      }
+      .card {
+        border: 1px solid #cbd5c9;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        padding: 0;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        transition:
+          box-shadow 0.15s,
+          border-color 0.15s;
+      }
+      .card:hover {
+        border-color: #527b66;
+        box-shadow: 0 4px 12px #132b2013;
+      }
+      .card[data-active='true'] {
+        border: 2px solid #48765d;
+      }
+      .thumb {
+        width: 100%;
+        background: #dfe7de;
+        display: grid;
+        place-items: center;
+        position: relative;
+        aspect-ratio: 1.2;
+        padding: 12px 0;
+        overflow: hidden;
+        background-image: linear-gradient(140deg, #ffffff2b, transparent);
+      }
+      .card:nth-child(4n + 2) .thumb {
+        background-color: #e9e2d7;
+      }
+      .card:nth-child(4n + 3) .thumb {
+        background-color: #dce6e6;
+      }
+      .card:nth-child(4n) .thumb {
+        background-color: #e8e5df;
+      }
+      .thumb .viewport {
+        width: 53%;
+        box-shadow: 0 2px 7px #182d2527;
+      }
+      .activeTag {
+        position: absolute;
+        bottom: 7px;
+        right: 8px;
+        background: #f4f9ee;
+        border: 1px solid #b4cbb8;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 10px;
+        color: #275139;
+      }
+      .caption {
+        padding: 11px 13px 13px;
+        width: 100%;
+      }
+      .cardTitle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 650;
+        font-size: 16px;
+      }
+      .code {
+        font:
+          500 10px/1.4 ui-monospace,
+          monospace;
+        color: #49625b;
+        background: #eef2eb;
+        border: 1px solid #dce4d9;
+        border-radius: 3px;
+        padding: 1px 4px;
+      }
+      .caption small {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--quiet);
+        display: block;
+        margin-top: 4px;
+      }
+      .empty {
+        padding: 35px 0;
+      }
+      .empty p {
+        color: var(--quiet);
+      }
+      [hidden] {
+        display: none !important;
+      }
+      dialog {
+        color: var(--ink);
+        border: 1px solid var(--line);
+        padding: 0;
+        background: var(--desk);
+        border-radius: 12px;
+        width: min(1100px, 95vw);
+        max-width: 95vw;
+        max-height: 94vh;
+        box-shadow: 0 15px 90px #152a2840;
+      }
+      dialog[open] {
+        display: flex;
+        flex-direction: column;
+      }
+      dialog::backdrop {
+        background: #15292199;
+      }
+      .dlgHead,
+      .bottom {
+        background: #fbfcf7;
+        padding: 13px 20px;
+      }
+      .dlgHead {
+        border-bottom: 1px solid var(--line);
+      }
+      .modalTitle {
+        gap: 9px;
+        justify-content: space-between;
+      }
+      .modalTitle h2 {
+        font-size: 21px;
+        line-height: 1.4;
+        margin: 0;
+      }
+      .modalTitle p {
+        font-size: 13px;
+        color: var(--quiet);
+        margin: 4px 0;
+      }
+      .controls {
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+      .modalNav,
+      .mode {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .navBtn,
+      .choice {
+        padding: 5px 9px;
+        font-size: 12px;
+      }
+      .navBtn:disabled,
+      .choice:disabled,
+      .solid:disabled {
+        opacity: 0.48;
+      }
+      .modalNav span {
+        font-size: 12px;
+        color: var(--quiet);
+        font-variant-numeric: tabular-nums;
+      }
+      .stage {
+        padding: 16px 22px 20px;
+        overflow: auto;
+        overscroll-behavior: contain;
+        background: #e4e9e0;
+      }
+      .panes {
+        display: flex;
+        justify-content: center;
+        gap: clamp(12px, 3vw, 38px);
+        align-items: start;
+      }
+      .panes figure {
+        min-width: 0;
+        margin: 0;
+        width: min(100%, 365px);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .panes.dual figure {
+        width: min(calc(50% - 12px), 365px);
+      }
+      figcaption {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 12px;
+        color: #476056;
+        padding-bottom: 6px;
+      }
+      figcaption strong {
+        color: #263c32;
+      }
+      .panes .viewport {
+        box-shadow: 0 3px 15px #24382925;
+      }
+      .bottom {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        border-top: 1px solid var(--line);
+      }
+      .bottom small {
+        font-size: 12px;
+        color: var(--quiet);
+      }
+      .bottomActions {
+        display: flex;
+        gap: 8px;
+      }
+      .solid {
+        background: #28563f;
+        color: white;
+        border-color: #28563f;
+      }
+      .solid:hover:not(:disabled) {
+        background: #183e2e;
+      }
+      .toast {
+        position: fixed;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #223d34;
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 5px 18px #27332935;
+        gap: 15px;
+        padding: 10px 15px;
+        font-size: 13px;
+        max-width: 94vw;
+        z-index: 2;
+      }
+      .toast button {
+        padding: 3px 8px;
+        background: #f3f8ed;
+        color: #254c37;
+        border: 0;
+        border-radius: 4px;
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      @media (max-width: 1000px) {
+        .gallery {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 700px) {
+        .gallery {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px 9px;
+        }
+        .intro {
+          padding-bottom: 14px;
+        }
+        .row {
+          gap: 12px;
+        }
+        .searchLabel {
+          width: 100%;
+        }
+        .activeBtn {
+          font-size: 11px;
+        }
+        .caption {
+          padding: 8px;
+        }
+        .cardTitle {
+          font-size: 14px;
+          gap: 4px;
+        }
+        .caption small {
+          font-size: 11px;
+        }
+        .filter {
+          padding: 6px 8px;
+        }
+        .dlgHead,
+        .bottom {
+          padding: 10px 12px;
+        }
+        .stage {
+          padding: 10px;
+        }
+        .bottom {
+          align-items: start;
+        }
+        .bottom small {
+          font-size: 10px;
+          max-width: 39%;
+        }
+        .minor,
+        .solid {
+          font-size: 12px;
+          padding: 7px 9px;
+        }
+        .meta {
+          font-size: 10px;
+        }
+        .panes.dual {
+          gap: 8px;
+        }
+        .panes.dual figure {
+          width: calc(50% - 4px);
+        }
+        .modalTitle h2 {
+          font-size: 18px;
+        }
+        figcaption {
+          flex-wrap: wrap;
+          gap: 2px;
+          font-size: 10px;
+        }
+        .thumb .viewport {
+          width: 59%;
+        }
+        .thumb {
+          aspect-ratio: 1.05;
+        }
+        .activeTag {
+          bottom: 3px;
+          right: 3px;
+          font-size: 9px;
+        }
+      }
+      /* Each sheet is a 400-unit A4 composition. A single renderer supplies the tile and both preview panes. */
+      .viewport {
+        aspect-ratio: 210/297;
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+        background: #fff;
+        container-type: inline-size;
+      }
+      .paper {
+        --color: #2e4d42;
+        --wash: #e9ede7;
+        --hair: #bacabf;
+        --x: 24px;
+        position: absolute;
+        background: white;
+        color: #25322d;
+        inset: 0 auto auto 0;
+        width: 400px;
+        height: 565.715px;
+        transform: scale(var(--zoom, 0.42));
+        transform-origin: top left;
+        padding: 22px var(--x);
+        font:
+          8px/1.48 'PingFang SC',
+          'Microsoft YaHei',
+          sans-serif;
+        text-align: left;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .paper * {
+        box-sizing: border-box;
+      }
+      .paper p,
+      .paper h3,
+      .paper h4,
+      .paper h5 {
+        margin: 0;
+      }
+      .paper h3,
+      .paper h4,
+      .paper h5,
+      .paper strong {
+        font-weight: 690;
+      }
+      .paper .identity {
+        padding-bottom: 12px;
+        margin-bottom: 10px;
+        border-bottom: 1.5px solid var(--color);
+        position: relative;
+      }
+      .identity .name {
+        font-size: 29px;
+        line-height: 1.25;
+        letter-spacing: 0.12em;
+        color: var(--color);
+        font-family: 'Songti SC', 'STSong', serif;
+        font-weight: 700;
+      }
+      .identity .job {
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        margin-top: 1px;
+        font-weight: 600;
+      }
+      .contact {
+        color: #596861;
+        font-size: 7.3px;
+        margin-top: 5px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+      .contact span + span:before {
+        content: '  /  ';
+        white-space: pre;
+      }
+      .module {
+        position: relative;
+        min-width: 0;
+        margin-bottom: 9px;
+      }
+      .module h4,
+      .specialTitle {
+        font-size: 11px;
+        color: var(--color);
+        line-height: 1.5;
+        margin: 0 0 4px;
+        padding: 0 0 2px;
+        border-bottom: 1px solid var(--hair);
+        font-weight: 690;
+        letter-spacing: 0.06em;
+      }
+      .entry {
+        position: relative;
+        min-width: 0;
+        margin-bottom: 4px;
+      }
+      .entry:last-child,
+      .module:last-child {
+        margin-bottom: 0;
+      }
+      .entryHead {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      .entry h5 {
+        font-size: 9.1px;
+        line-height: 1.45;
+        color: #202d26;
+      }
+      .role {
+        font-size: 7.7px;
+        color: #53625b;
+      }
+      .date {
+        margin-left: auto;
+        font-size: 7px;
+        color: #53625b;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .entry p {
+        font-size: 7.8px;
+        margin-top: 1.5px;
+        line-height: 1.52;
+      }
+      .skillList {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px 5px;
+      }
+      .skillList span {
+        border: 1px solid var(--hair);
+        border-radius: 2px;
+        padding: 1px 5px;
+        font-size: 7.5px;
+      }
+      .introText {
+        font-size: 8px;
+        line-height: 1.65;
+      }
+      .blocks,
+      .records {
+        min-width: 0;
+      }
+      .avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        flex: none;
+        background: #d1ddd1;
+        color: #526e5d;
+        border: 2px solid #fff;
+        font:
+          600 20px/1 'Songti SC',
+          serif;
+      }
+      .pageFoot {
+        position: absolute;
+        bottom: 12px;
+        right: 23px;
+        color: #75827a;
+        font:
+          6.4px ui-monospace,
+          monospace;
+      }
+      .paper[data-family='A'] {
+        --color: #414a47;
+        --hair: #b6c1ba;
+      }
+      .paper[data-family='B'] {
+        --color: #35524b;
+        --wash: #e6eee8;
+      }
+      .paper[data-family='C'] {
+        --color: #374d60;
+        --wash: #e8eef1;
+        --hair: #c3cfd5;
+      }
+      .paper[data-family='D'] {
+        --color: #6e4c37;
+        --wash: #f0eae1;
+        --hair: #d4c7b9;
+      }
+      .paper[data-family='E'] {
+        --color: #3f5767;
+        --wash: #e8eff3;
+        --hair: #bfccd3;
+      }
+      .paper[data-family='F'] {
+        --color: #634148;
+        --wash: #f1e9e7;
+        --hair: #d7c1bd;
+      }
+      .paper[data-id='A1'] .identity {
+        text-align: center;
+        border-bottom: 3px double var(--color);
+      }
+      .paper[data-id='A1'] .module h4 {
+        font-family: 'Songti SC', serif;
+        letter-spacing: 0.22em;
+        border-bottom-color: #596159;
+      }
+      .paper[data-id='A2'] .module {
+        display: grid;
+        grid-template-columns: 60px 1fr;
+        gap: 6px 10px;
+      }
+      .paper[data-id='A2'] .module h4 {
+        border: 0;
+        border-right: 1px solid var(--hair);
+        align-self: stretch;
+        padding-top: 2px;
+      }
+      .paper[data-id='A2'] .identity {
+        margin-bottom: 16px;
+      }
+      .paper[data-id='A3'] .identity {
+        display: grid;
+        grid-template-columns: 58% 1fr;
+        align-items: end;
+        border-top: 5px solid var(--color);
+        padding-top: 8px;
+        border-bottom: 1px solid var(--hair);
+      }
+      .paper[data-id='A3'] .contact,
+      .paper[data-id='F4'] .contact {
+        border-left: 1px solid var(--hair);
+        padding-left: 12px;
+      }
+      .paper[data-id='A3'] .contact span,
+      .paper[data-id='F4'] .contact span {
+        display: block;
+      }
+      .paper[data-id='A3'] .contact span + span:before,
+      .paper[data-id='F4'] .contact span + span:before {
+        content: '';
+      }
+      .paper[data-id='A3'] .module h4 {
+        border: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .paper[data-id='A3'] .module h4:after {
+        content: '';
+        height: 1px;
+        background: var(--hair);
+        flex: 1;
+      }
+      .paper[data-id='A4'] .entryHead {
+        display: grid;
+        grid-template-columns: 71px 1.3fr 1fr;
+        align-items: center;
+        background: #f0f3f0;
+        padding: 2px 4px;
+      }
+      .paper[data-id='A4'] .entryHead > * + * {
+        border-left: 1px solid #cad3cb;
+        padding-left: 5px;
+      }
+      .paper[data-id='A4'] .date {
+        grid-column: 1;
+        grid-row: 1;
+        margin: 0;
+        border: 0;
+        padding: 0;
+      }
+      .paper[data-id='A4'] .entry h5 {
+        grid-column: 2;
+        grid-row: 1;
+        border-left: 1px solid #cad3cb;
+        padding-left: 5px;
+      }
+      .paper[data-id='A4'] .entry p {
+        padding-left: 5px;
+      }
+      .paper[data-id='A5'] .module {
+        padding-left: 28px;
+        border-left: 1px solid var(--hair);
+        min-height: 44px;
+      }
+      .paper[data-id='A5'] .module h4 {
+        position: absolute;
+        left: 0;
+        top: 0;
+        writing-mode: vertical-rl;
+        font-size: 8px;
+        line-height: 1.4;
+        padding: 3px 2px;
+        background: var(--color);
+        color: white;
+        border: 0;
+        letter-spacing: 1px;
+      }
+      .paper.split {
+        padding: 0;
+      }
+      .splitGrid {
+        display: grid;
+        grid-template-columns: 34% 1fr;
+        height: 100%;
+      }
+      .side,
+      .bodyCol {
+        padding: 21px 13px;
+        min-width: 0;
+      }
+      .bodyCol {
+        padding: 22px 16px;
+      }
+      .side {
+        background: var(--wash);
+      }
+      .side .identity {
+        border: 0;
+        padding: 0;
+        margin-bottom: 14px;
+      }
+      .side .identity .name {
+        font-size: 24px;
+      }
+      .side .identity .job {
+        font-size: 8px;
+      }
+      .side .contact span,
+      .profileCard .contact span {
+        display: block;
+      }
+      .side .contact span + span:before,
+      .profileCard .contact span + span:before {
+        content: '';
+      }
+      .side .module {
+        margin-bottom: 13px;
+      }
+      .side .module h4 {
+        font-size: 9.2px;
+      }
+      .side .entryHead {
+        display: block;
+      }
+      .side .role,
+      .side .date {
+        display: block;
+        font-size: 7px;
+      }
+      .side .skillList {
+        gap: 3px;
+      }
+      .side .skillList span {
+        font-size: 7px;
+        padding-inline: 3px;
+      }
+      .side .avatar {
+        margin-bottom: 6px;
+      }
+      .bodyCol .entry {
+        margin-bottom: 8px;
+      }
+      .bodyCol .entryHead {
+        display: block;
+      }
+      .bodyCol .date {
+        display: block;
+        margin: 0;
+        font-size: 7px;
+      }
+      .bodyCol .module {
+        margin-bottom: 15px;
+      }
+      .bodyCol .module h4 {
+        margin-bottom: 6px;
+      }
+      .paper[data-id='00'] {
+        --color: #36556c;
+        --wash: #f2f5f7;
+        --hair: #bac9d3;
+      }
+      .paper[data-id='00'] .side {
+        position: relative;
+        padding-top: 14px;
+      }
+      .paper[data-id='00'] .side:before {
+        content: '';
+        background: var(--color);
+        position: absolute;
+        inset: 4px 2px auto;
+        height: 96px;
+        border-radius: 0 0 54% 54%/0 0 19% 19%;
+      }
+      .paper[data-id='00'] .identity {
+        text-align: center;
+      }
+      .paper[data-id='00'] .name,
+      .paper[data-id='00'] .job {
+        color: #fff;
+      }
+      .paper[data-id='00'] .avatar {
+        width: 73px;
+        height: 73px;
+        font-size: 28px;
+        margin: 7px auto 2px;
+        border-width: 3px;
+        background: #c3cfd4;
+        color: #4b6173;
+      }
+      .paper[data-id='00'] .module h4 {
+        border-bottom: 1.5px solid var(--color);
+      }
+      .paper[data-id='B1'] .side {
+        background: var(--color);
+        color: white;
+      }
+      .paper[data-id='B1'] .side :is(.name, .contact, .module h4, .entry h5, .role, .date) {
+        color: #fbfff9;
+      }
+      .paper[data-id='B1'] .side .module h4 {
+        border-color: #78958a;
+      }
+      .paper[data-id='B1'] .side .skillList span {
+        border-color: #8ba69c;
+      }
+      .paper[data-id='B2'] .side {
+        background: #fafbf8;
+        padding: 0 12px;
+      }
+      .paper[data-id='B2'] .identity {
+        margin: 0 -12px 15px;
+        padding: 20px 12px 16px;
+        background: var(--color);
+        color: white;
+      }
+      .paper[data-id='B2'] .identity :is(.name, .contact) {
+        color: white;
+      }
+      .paper[data-id='B3'] .side {
+        background: #fff;
+        border-right: 1px solid var(--hair);
+      }
+      .paper[data-id='B3'] .side .skillList {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+      }
+      .paper[data-id='B3'] .side .skillList span {
+        border: 0;
+        border-bottom: 1px solid var(--hair);
+        border-radius: 0;
+        padding: 2px 0;
+      }
+      .paper[data-id='B3'] .side h4 {
+        border-bottom: 2px solid var(--color);
+      }
+      .paper[data-id='B4'] .avatar {
+        border-radius: 0;
+        width: 90px;
+        height: 76px;
+        margin: 0 auto 8px;
+        outline: 1px solid var(--hair);
+        border: 4px solid white;
+      }
+      .paper[data-id='B4'] .identity {
+        text-align: center;
+      }
+      .paper[data-id='B4'] .bodyCol .entry {
+        border: 1px solid var(--hair);
+        padding: 6px;
+      }
+      .fullHeader {
+        padding: 15px 19px 8px;
+      }
+      .fullHeader .identity {
+        margin: 0;
+      }
+      .paper[data-id='B5'] .fullHeader {
+        border-top: 8px solid var(--color);
+      }
+      .paper[data-id='B5'] .splitGrid,
+      .paper[data-id='C3'] .splitGrid {
+        height: 100%;
+      }
+      .paper[data-id='B5'] .side {
+        background: #f5f7f3;
+      }
+      .paper[data-id='B5'] .bodyCol,
+      .paper[data-id='B5'] .side,
+      .paper[data-id='C3'] .bodyCol,
+      .paper[data-id='C3'] .side {
+        padding-top: 7px;
+      }
+      .paper.right .splitGrid {
+        grid-template-columns: 1fr 33%;
+      }
+      .paper.right .side {
+        grid-column: 2;
+        grid-row: 1;
+      }
+      .paper.right .bodyCol {
+        grid-column: 1;
+        grid-row: 1;
+      }
+      .paper[data-id='C1'] .side {
+        border-top: 8px solid var(--color);
+      }
+      .paper[data-id='C2'] .side {
+        background: #fff;
+        padding-inline: 6px 13px;
+      }
+      .paper[data-id='C2'] .side .module {
+        padding: 6px;
+        border: 1px solid var(--hair);
+        margin-bottom: 6px;
+        border-radius: 3px;
+      }
+      .paper[data-id='C2'] .side .module h4 {
+        background: var(--wash);
+        margin: -6px -6px 4px;
+        padding: 4px 5px;
+      }
+      .paper[data-id='C3'] .fullHeader {
+        display: grid;
+        grid-template-columns: 1fr 43%;
+        align-items: center;
+        gap: 14px;
+      }
+      .profileCard {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--wash);
+        padding: 7px 5px;
+        border-radius: 3px;
+      }
+      .profileCard .avatar {
+        width: 31px;
+        height: 31px;
+        font-size: 15px;
+      }
+      .profileCard .contact {
+        font-size: 6.3px;
+        margin: 0;
+      }
+      .paper[data-id='C3'] .side {
+        background: white;
+        border-left: 1px solid var(--hair);
+      }
+      .paper[data-id='C4'] .side {
+        background: white;
+        padding-left: 6px;
+        padding-top: 64px;
+      }
+      .paper[data-id='C4'] .side h4 {
+        border: 0;
+      }
+      .paper[data-id='C4'] .side h4:before {
+        content: '';
+        display: block;
+        width: 22px;
+        border-top: 2px solid var(--color);
+        margin: 0 0 4px;
+      }
+      .paper[data-id='C5'] .splitGrid {
+        grid-template-columns: 53% 47%;
+      }
+      .paper[data-id='C5'] .side {
+        background: white;
+        border-left: 2px solid var(--color);
+        margin: 20px 0;
+        padding-top: 0;
+      }
+      .paper[data-id='C5'] .side .identity {
+        border-bottom: 1px solid var(--hair);
+        padding-bottom: 5px;
+      }
+      .paper[data-id='D1'] .entry {
+        padding-left: 76px;
+        min-height: 24px;
+      }
+      .paper[data-id='D1'] .date {
+        position: absolute;
+        left: 0;
+        top: 0;
+        padding: 2px 5px;
+        border-left: 2px solid var(--color);
+        background: var(--wash);
+      }
+      .paper[data-id='D2'] .blocks {
+        border-left: 2px solid var(--hair);
+        padding-left: 14px;
+      }
+      .paper[data-id='D2'] .module h4 {
+        border: 0;
+      }
+      .paper[data-id='D2'] .entry:before,
+      .paper[data-id='D2'] .module h4:before {
+        content: '';
+        position: absolute;
+        left: -18px;
+        top: 5px;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: white;
+        border: 1px solid var(--color);
+      }
+      .paper[data-id='D2'] .module h4:before {
+        background: var(--color);
+        width: 8px;
+        height: 8px;
+        left: -20px;
+      }
+      .paper[data-id='D2'] .entry {
+        margin-bottom: 6px;
+      }
+      .paper[data-id='D3'] .records {
+        margin: 2px 0 8px 6px;
+        padding: 1px 0 1px 12px;
+        border-left: 2px solid var(--color);
+      }
+      .paper[data-id='D3'] .entry:before {
+        content: '';
+        position: absolute;
+        left: -16px;
+        top: 4px;
+        width: 6px;
+        height: 6px;
+        background: var(--color);
+      }
+      .paper[data-id='D3'] .module h4 {
+        background: var(--wash);
+        border: 0;
+        padding-left: 5px;
+      }
+      .paper[data-id='D4'] .entry {
+        padding-right: 75px;
+        border-right: 1px solid var(--hair);
+      }
+      .paper[data-id='D4'] .date {
+        position: absolute;
+        right: 5px;
+        top: 1px;
+      }
+      .paper[data-id='D4'] .module h4 {
+        text-align: right;
+        border-bottom: 0;
+        border-top: 1px solid var(--color);
+      }
+      .paper[data-id='D5'] .entry {
+        padding-top: 12px;
+      }
+      .paper[data-id='D5'] .date {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: var(--wash);
+        padding-left: 5px;
+        letter-spacing: 1px;
+      }
+      .paper[data-id='D5'] .module {
+        margin-bottom: 5px;
+      }
+      .paper[data-id='D5'] .entry p {
+        margin-top: 0;
+      }
+      .feature {
+        background: var(--wash);
+        padding: 9px 11px;
+        margin: 0 0 10px;
+        border-left: 3px solid var(--color);
+      }
+      .feature .specialTitle {
+        border: 0;
+        font-size: 8px;
+        letter-spacing: 0.14em;
+      }
+      .feature .entry h5 {
+        font-size: 12px;
+      }
+      .feature .entry p {
+        font-size: 8px;
+      }
+      .paper[data-id='E2'] .feature {
+        border: 0;
+        padding: 9px 20px 10px 32px;
+        position: relative;
+      }
+      .paper[data-id='E2'] .feature:before {
+        content: '“';
+        position: absolute;
+        left: 7px;
+        top: 3px;
+        font:
+          40px/1 Georgia,
+          serif;
+        color: var(--color);
+      }
+      .paper[data-id='E2'] .introText {
+        font:
+          11px/1.5 'Songti SC',
+          serif;
+      }
+      .paper[data-id='E3'] .feature {
+        border: 0;
+        background: white;
+        border-block: 2px solid var(--color);
+        padding: 6px 0;
+      }
+      .paper[data-id='E3'] .feature .skillList {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .paper[data-id='E3'] .feature .skillList span {
+        text-align: center;
+        background: var(--wash);
+        border: 0;
+      }
+      .paper[data-id='E4'] .feature {
+        border: 0;
+        background: transparent;
+        padding: 0;
+      }
+      .eduCards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .eduCards .entry {
+        padding: 7px;
+        border-top: 2px solid var(--color);
+        background: var(--wash);
+        margin: 0;
+      }
+      .eduCards .entryHead {
+        display: block;
+      }
+      .eduCards .date {
+        display: block;
+      }
+      .paper[data-id='E5'] .feature {
+        border: 0;
+        text-align: center;
+        border-block: 1px solid var(--color);
+        padding: 10px 16px;
+      }
+      .pull {
+        font:
+          600 13px/1.5 'Songti SC',
+          serif;
+        color: var(--color);
+      }
+      .paper[data-id='F1'] .identity {
+        border-block: 3px double var(--color);
+        padding: 7px 0;
+      }
+      .paper[data-id='F1'] .name {
+        font:
+          700 45px/1.02 'Songti SC',
+          serif;
+        letter-spacing: 0.18em;
+      }
+      .paper[data-id='F1'] .module h4 {
+        font-family: 'Songti SC', serif;
+        letter-spacing: 0.2em;
+      }
+      .directory {
+        padding: 5px 0 7px;
+        border-block: 1px solid var(--color);
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 6.8px;
+      }
+      .directory strong {
+        color: var(--color);
+      }
+      .paper[data-id='F2'] .identity {
+        border: 0;
+        margin-bottom: 0;
+      }
+      .paper[data-id='F2'] .module h4 {
+        border-bottom: 1px dotted var(--color);
+      }
+      .paper[data-id='F3'] .module[data-part='project'] .entry {
+        padding: 4px 0 4px 32px;
+        border-block-start: 1px solid var(--hair);
+      }
+      .paper[data-id='F3'] .module[data-part='project'] .entry:before {
+        content: attr(data-number);
+        position: absolute;
+        left: 0;
+        top: 3px;
+        bottom: 3px;
+        width: 27px;
+        text-align: center;
+        background: var(--wash);
+        color: var(--color);
+        font:
+          13px/24px Georgia,
+          serif;
+      }
+      .paper[data-id='F4'] .identity {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        border: 1px solid var(--color);
+        padding: 0;
+        background: var(--wash);
+        align-items: stretch;
+      }
+      .paper[data-id='F4'] .person {
+        padding: 11px;
+      }
+      .paper[data-id='F4'] .contact {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background: #fff;
+        margin: 0;
+      }
+      .paper[data-id='F5'] .identity {
+        background: var(--color);
+        color: #fff;
+        margin: -22px calc(-1 * var(--x)) 12px;
+        padding: 18px var(--x) 13px;
+        border: 0;
+      }
+      .paper[data-id='F5'] .identity :is(.name, .contact) {
+        color: #fff;
+      }
+      .paper[data-id='F5'] .module h4 {
+        border: 0;
+        border-left: 3px solid var(--color);
+        padding-left: 5px;
+      }
+      .paper[data-id='00'] {
+        --color: #405983;
+        --wash: #f5f7f9;
+        --hair: #bcc6d3;
+      }
+      .originalCover {
+        position: relative;
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        color: white;
+      }
+      .paper[data-id='00'] .originalCover .avatar {
+        margin-top: 5px;
+      }
+      .profileLines {
+        font-size: 8.2px;
+      }
+      .profileLines p {
+        padding: 1px 0;
+      }
+      .paper[data-id='00'] .side:after {
+        content: '';
+        position: absolute;
+        bottom: 4px;
+        left: 2px;
+        right: 2px;
+        height: 10px;
+        background: var(--color);
+        border-radius: 100% 100% 0 0 / 100% 100% 0 0;
+      }
+      .paper[data-id='E5'] .module {
+        margin-bottom: 6px;
+      }
+      .directoryFields {
+        display: grid;
+        grid-template-columns: 20px 1fr;
+        align-items: start;
+        gap: 0;
+        margin: 8px 0;
+      }
+      .directoryFields dt,
+      .directoryFields dd {
+        padding: 2px 0;
+        border-bottom: 1px solid var(--hair);
+        margin: 0;
+        font-size: 6.6px;
+      }
+      .paper.split .bodyCol .module {
+        margin-bottom: 13px;
+      }
+      .paper.split .bodyCol .entry {
+        margin-bottom: 8px;
+      }
+      .paper.split .bodyCol .entryHead {
+        display: flex;
+        gap: 2px 4px;
+      }
+      .paper.split .bodyCol .date {
+        margin-left: auto;
+      }
+      .paper[data-id='B4'] .bodyCol .entry {
+        padding: 4px;
+      }
+      .panes:not(.dual) figure {
+        width: min(100%, 480px);
+      }
+      .panes.dual figure {
+        width: min(calc(50% - 12px), 450px);
+      }
+      .zoomArea {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .panes.large {
+        justify-content: safe center;
+        width: max-content;
+        min-width: 100%;
+        gap: 18px;
+      }
+      .panes.large figure,
+      .panes.large.dual figure {
+        width: 640px;
+      }
+      .stage {
+        flex: 1;
+        min-height: 0;
+      }
+      .dlgHead,
+      .bottom {
+        flex: none;
+      }
+      @media (max-width: 700px) {
+        .panes.dual figure {
+          width: calc(50% - 4px);
+        }
+        .panes.large figure,
+        .panes.large.dual figure {
+          width: 480px;
+        }
+        .zoomArea {
+          gap: 3px;
+        }
+        .zoomArea button {
+          padding-inline: 5px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="top wrap">
+        <div class="brand"><i class="brandMark" aria-hidden="true"></i>简历工坊</div>
+        <button class="activeBtn" id="showCurrent">已应用 <b id="currentName">蓝灰圆弧</b> ↗</button>
+      </div>
+    </header>
+    <main class="wrap">
+      <section class="intro">
+        <h1>模板图册</h1>
+        <p>用同一份虚构履历试穿 31 种版式。点选一张，放大看首页，或与当前模板并排比较。</p>
+      </section>
+      <div class="row">
+        <div id="filters" role="group" aria-label="版式类别"></div>
+        <label class="searchLabel"
+          ><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <circle cx="8" cy="8" r="5.3" />
+            <path d="m12 12 5 5" /></svg
+          ><span class="sr">搜索模板名称、编号或特征</span
+          ><input id="search" type="search" placeholder="搜索名称、编号或特征"
+        /></label>
+      </div>
+      <div class="meta"><strong role="status" id="count"></strong><span>虚构样稿 · A4 首页示意</span></div>
+      <div id="gallery" class="gallery"></div>
+      <div id="empty" hidden class="empty">
+        <strong>没有匹配的模板</strong>
+        <p>试试“右栏”“时间”或模板编号。</p>
+        <button id="clear" class="minor">清除筛选</button>
+      </div>
+    </main>
+    <dialog id="picker" aria-labelledby="dialogTitle" aria-describedby="dialogDescription">
+      <div class="dlgHead">
+        <div class="modalTitle">
+          <div>
+            <h2 id="dialogTitle"></h2>
+            <p id="dialogDescription"></p>
+          </div>
+          <button id="close" class="minor" aria-label="关闭试用">关闭</button>
+        </div>
+        <div class="controls">
+          <div class="zoomArea">
+            <div class="mode" role="group" aria-label="预览模式">
+              <button id="single" class="choice">单张预览</button
+              ><button id="compare" class="choice">与当前并排</button>
+            </div>
+            <button class="choice" id="zoom" aria-pressed="false">放大细读</button>
+          </div>
+          <div class="modalNav">
+            <button id="prev" class="navBtn" aria-label="上一个候选模板">←</button><span id="position"></span
+            ><button id="next" class="navBtn" aria-label="下一个候选模板">→</button>
+          </div>
+        </div>
+      </div>
+      <div class="stage" tabindex="0" aria-label="模板预览，可滚动查看">
+        <div id="panes" class="panes"></div>
+      </div>
+      <div class="bottom">
+        <small>首页版式示意。应用只在本次浏览生效。</small>
+        <div class="bottomActions">
+          <button id="cancel" class="minor">取消</button
+          ><button id="apply" class="solid">应用到本次演示</button>
+        </div>
+      </div>
+    </dialog>
+    <div role="status" aria-live="polite" class="sr" id="live"></div>
+    <div class="toast" id="toast" hidden><span id="notice"></span><button id="undo">撤销</button></div>
+    <script>
+      'use strict'
+      const groups = {
+        '*': '全部',
+        0: '原稿',
+        A: '正式单栏',
+        B: '左侧栏',
+        C: '右侧栏',
+        D: '时间履历',
+        E: '重点前置',
+        F: '编辑出版',
+      }
+      const catalog = [
+        ['00', '蓝灰圆弧', '蓝灰弧形抬头与圆形头像，侧栏独立延伸。'],
+        ['A1', '公文横线', '居中信头，通栏标题由细横线分隔。'],
+        ['A2', '左题右文', '栏目名沿左轨排列，所有条目共用右侧正文轴。'],
+        ['A3', '双层信头', '姓名与岗位上下排列，联系资料独占信头右侧。'],
+        ['A4', '台账条目', '首行按日期、单位、职务对齐，条目说明接在下一行。'],
+        ['A5', '边签索引', '短竖签标出各章，正文沿竖签右侧展开。'],
+        ['B1', '全高名片', '照片、联系资料与技能收进通高深色左栏。'],
+        ['B2', '半高色块', '左栏上段以深色承载个人名片，下段浅底接续模块。'],
+        ['B3', '左栏清单', '白底左栏以细线分隔，技能按两列清单排列。'],
+        ['B4', '左侧相框', '矩形头像下方署名，右侧经历逐条装入边框。'],
+        ['B5', '通栏抬头左分栏', '横跨整页的信头下，左资料与右经历分流。'],
+        ['C1', '右侧档案', '浅底右侧档案区贯穿页高，经历占据左侧。'],
+        ['C2', '右栏卡盒', '每个右栏模块独立装框，模块之间留白。'],
+        ['C3', '顶栏右名片', '左上姓名与右上带照片名片并排，下面分栏。'],
+        ['C4', '右侧脚注', '右栏错下起排，各段用短横线标记。'],
+        ['C5', '中线双轨', '近等宽的两栏共用一条竖向中线。'],
+        ['D1', '年月左轨', '日期齐列在左轨，经历与要点在右侧对齐。'],
+        ['D2', '节点时间线', '一条连续竖线串联章节节点和经历节点。'],
+        ['D3', '分段时间轴', '每个栏目用独立短轴，换栏目时重新起线。'],
+        ['D4', '日期页边', '日期贴右侧专属边轨，标题与说明保留左侧空间。'],
+        ['D5', '横带年表', '每条经历先显示横向日期带，下方列标题和正文。'],
+        ['E1', '项目首屏', '首个项目展开在通栏导读中，其余项目在下方。'],
+        ['E2', '概述题记', '第一段自我评价放大为引文，置于抬头下方。'],
+        ['E3', '技能横条', '技能在首屏横向分组，自动换到第二行。'],
+        ['E4', '学历横排', '前两段教育在抬头下并排，随后接续其他经历。'],
+        ['E5', '成果提要', '第一条项目要点提到顶栏，保留其余项目正文。'],
+        ['F1', '期刊扉页', '大字刊头夹在双细线之间，正文通栏纵排。'],
+        ['F2', '研究目录', '页首横排栏目导览，与正文各章标题呼应。'],
+        ['F3', '案例档案', '项目优先展示，档号窄轨与案例标题对齐。'],
+        ['F4', '对开履历', '姓名与联系方式各占半张信头，正文单栏接续。'],
+        ['F5', '页首横幅', '首页用整宽深色信头，续页设计使用细横条。'],
+      ].map(([id, name, detail]) => ({ id, name, detail, family: id[0] }))
+      const byId = new Map(catalog.map((item) => [item.id, item]))
+      const order = [
+        catalog[0],
+        ...[1, 2, 3, 4, 5].flatMap((i) => ['A', 'B', 'C', 'D', 'E', 'F'].map((f) => byId.get(f + i))),
+      ]
+      const sample = {
+        name: '林澈',
+        job: '产品体验设计师',
+        city: '杭州',
+        mail: 'lin@example.org',
+        site: 'portfolio.example.org',
+        work: [
+          {
+            title: '栖石设计工作室',
+            role: '产品设计师',
+            date: '2023.04 — 至今',
+            points: ['负责公共服务预约工具的调研、原型与交付。', '组织六轮可用性走查，整理跨端界面规范。'],
+          },
+          {
+            title: '北桥数字实验室',
+            role: '体验研究员',
+            date: '2021.07 — 2023.03',
+            points: ['围绕线下服务开展访谈，绘制旅程图并协同验证。'],
+          },
+        ],
+        project: [
+          {
+            title: '街区服务地图',
+            role: '研究与交互',
+            date: '2024.02 — 2024.09',
+            points: ['将办事入口从五步缩短至三步。', '制作无障碍导航原型，完成高对比度与键盘走查。'],
+          },
+          {
+            title: '阅读角预约系统',
+            role: '项目设计',
+            date: '2023.05 — 2023.11',
+            points: ['统一座位状态与预约反馈，交付组件与测试清单。'],
+          },
+        ],
+        edu: [
+          {
+            title: '南屿设计学院',
+            role: '设计学 · 硕士',
+            date: '2019.09 — 2021.06',
+            points: ['研究方向为服务系统与信息设计。'],
+          },
+          {
+            title: '临溪学院',
+            role: '工业设计 · 学士',
+            date: '2015.09 — 2019.06',
+            points: ['完成公共设施与视觉表达课程。'],
+          },
+        ],
+        skill: ['用户访谈', '交互设计', '信息架构', '无障碍设计', '原型验证', '组件规范'],
+        about: '关注公共服务中的使用门槛，习惯把观察记录转化为可验证的交互方案。',
+      }
+      const names = {
+        work: '工作经历',
+        project: '项目实践',
+        edu: '教育背景',
+        skill: '专业技能',
+        about: '自我评价',
+      }
+      const $ = (id) => document.getElementById(id)
+      function contact(labeled = false) {
+        if (labeled)
+          return (
+            '<dl class="contact directoryFields">' +
+            [
+              ['城市', sample.city],
+              ['邮箱', sample.mail],
+              ['作品', sample.site],
+            ]
+              .map(([label, value]) => '<dt>' + label + '</dt><dd>' + value + '</dd>')
+              .join('') +
+            '</dl>'
+          )
+
+        return (
+          '<div class="contact">' +
+          [sample.city, sample.mail, sample.site].map((x) => '<span>' + x + '</span>').join('') +
+          '</div>'
+        )
+      }
+      function avatar() {
+        return '<div class="avatar" aria-label="虚构示例头像">澈</div>'
+      }
+      function identity(options = {}) {
+        return (
+          '<div class="identity">' +
+          (options.photo === 'before' ? avatar() : '') +
+          '<div class="person"><h3 class="name">' +
+          sample.name +
+          '</h3><div class="job">' +
+          sample.job +
+          '</div></div>' +
+          (options.photo === 'after' ? avatar() : '') +
+          (options.omitContact ? '' : contact(options.labeled)) +
+          '</div>'
+        )
+      }
+      function entry(record, index, points = record.points) {
+        return (
+          '<article class="entry" data-number="' +
+          String(index + 1).padStart(2, '0') +
+          '"><div class="entryHead"><h5>' +
+          record.title +
+          '</h5><span class="role">' +
+          record.role +
+          '</span><span class="date">' +
+          record.date +
+          '</span></div>' +
+          points.map((p) => '<p>' + p + '</p>').join('') +
+          '</article>'
+        )
+      }
+      function skills() {
+        return (
+          '<div class="skillList">' + sample.skill.map((s) => '<span>' + s + '</span>').join('') + '</div>'
+        )
+      }
+      function about() {
+        return '<p class="introText">' + sample.about + '</p>'
+      }
+      function section(key, options = {}) {
+        let content
+        if (key === 'skill') content = skills()
+        else if (key === 'about') content = about()
+        else
+          content =
+            '<div class="records">' +
+            sample[key]
+              .map((v, i) =>
+                options.skipFirst && i === 0
+                  ? ''
+                  : entry(v, i, options.skipPoint && i === 0 ? v.points.slice(1) : v.points),
+              )
+              .join('') +
+            '</div>'
+        return (
+          '<section class="module" data-part="' +
+          key +
+          '"><h4>' +
+          names[key] +
+          '</h4>' +
+          content +
+          '</section>'
+        )
+      }
+      function featureTitle(text) {
+        return '<div class="specialTitle">' + text + '</div>'
+      }
+      function featured(id) {
+        if (id === 'E1')
+          return (
+            '<div class="feature">' + featureTitle('项目实践 · 首项') + entry(sample.project[0], 0) + '</div>'
+          )
+        if (id === 'E2') return '<div class="feature">' + featureTitle(names.about) + about() + '</div>'
+        if (id === 'E3') return '<div class="feature">' + featureTitle(names.skill) + skills() + '</div>'
+        if (id === 'E4')
+          return (
+            '<div class="feature">' +
+            featureTitle(names.edu) +
+            '<div class="eduCards">' +
+            sample.edu.map((e, i) => entry(e, i)).join('') +
+            '</div></div>'
+          )
+        if (id === 'E5')
+          return (
+            '<div class="feature">' +
+            featureTitle('成果提要 · ' + sample.project[0].title) +
+            '<p class="pull">' +
+            sample.project[0].points[0] +
+            '</p></div>'
+          )
+        return ''
+      }
+      const layoutKeys = ['work', 'project', 'edu', 'skill', 'about']
+      function paper(id) {
+        const family = id[0],
+          split = '0BC'.includes(family)
+        let body,
+          classes = 'paper'
+        if (split) {
+          const left = family !== 'C',
+            upper = id === 'B5' || id === 'C3',
+            sideHeader = (left && !upper) || id === 'C5'
+          classes += ' split' + (left ? '' : ' right')
+          let head = upper
+            ? '<div class="fullHeader">' +
+              identity({ omitContact: id === 'C3' }) +
+              (id === 'C3' ? '<div class="profileCard">' + avatar() + contact() + '</div>' : '') +
+              '</div>'
+            : ''
+          let person = sideHeader
+            ? identity({ photo: ['B1', 'B2', 'B4'].includes(id) ? 'before' : null, labeled: id === 'B3' })
+            : ''
+          if (id === '00')
+            person =
+              '<div class="originalCover">简历' +
+              avatar() +
+              '</div><section class="module"><h4>个人信息</h4><div class="profileLines"><p>' +
+              sample.name +
+              '</p>' +
+              contact() +
+              '</div></section><section class="module"><h4>求职目标</h4><p>' +
+              sample.job +
+              '</p></section>'
+          let side = '<aside class="side">' + person + section('about') + section('skill') + '</aside>'
+          let main =
+            '<div class="bodyCol">' +
+            (!sideHeader && !upper ? identity() : '') +
+            section('edu') +
+            section('work') +
+            section('project') +
+            '</div>'
+          body = head + '<div class="splitGrid">' + (left ? side + main : main + side) + '</div>'
+        } else {
+          const omit = { E2: 'about', E3: 'skill', E4: 'edu' }[id]
+          const keys = id === 'F3' ? ['project', 'work', 'edu', 'skill', 'about'] : layoutKeys
+          let dir =
+            id === 'F2'
+              ? '<div class="directory">' +
+                keys
+                  .map(
+                    (k, i) =>
+                      '<span><strong>' + String(i + 1).padStart(2, '0') + '</strong> ' + names[k] + '</span>',
+                  )
+                  .join('') +
+                '</div>'
+              : ''
+          body =
+            identity() +
+            featured(id) +
+            dir +
+            '<div class="blocks">' +
+            keys
+              .filter((k) => k !== omit)
+              .map((k) =>
+                section(k, {
+                  skipFirst: id === 'E1' && k === 'project',
+                  skipPoint: id === 'E5' && k === 'project',
+                }),
+              )
+              .join('') +
+            '</div>'
+        }
+        return (
+          '<div class="viewport"><div class="' +
+          classes +
+          '" data-id="' +
+          id +
+          '" data-family="' +
+          family +
+          '">' +
+          body +
+          '<div class="pageFoot">1</div></div></div>'
+        )
+      }
+      let applied = '00',
+        candidate = '00',
+        family = '*',
+        visible = order,
+        compare = false,
+        magnified = false,
+        history = [],
+        opener = null,
+        toastTimer = 0
+      const resize = new ResizeObserver((entries) => {
+        for (const e of entries) {
+          e.target.style.setProperty('--zoom', e.contentRect.width / 400)
+        }
+      })
+      function observeSheets(root) {
+        for (const sheet of root.querySelectorAll('.viewport')) {
+          sheet.style.setProperty('--zoom', sheet.clientWidth / 400)
+          resize.observe(sheet)
+        }
+      }
+      function releaseSheets(root) {
+        for (const sheet of root.querySelectorAll('.viewport')) resize.unobserve(sheet)
+      }
+      function filters() {
+        const el = $('filters')
+        el.replaceChildren()
+        for (const key of ['*', '0', 'A', 'B', 'C', 'D', 'E', 'F']) {
+          const b = document.createElement('button')
+          b.className = 'filter'
+          b.textContent = groups[key]
+          b.dataset.group = key
+          b.setAttribute('aria-pressed', key === family)
+          b.onclick = () => {
+            family = key
+            el.querySelectorAll('button').forEach((item) => item.setAttribute('aria-pressed', item === b))
+            renderList()
+          }
+          el.append(b)
+        }
+      }
+      function renderList() {
+        const query = $('search').value.trim().toLowerCase()
+        visible = order.filter(
+          (t) =>
+            (family === '*' || family === t.family) &&
+            [t.name, t.id, t.detail, groups[t.family]].join(' ').toLowerCase().includes(query),
+        )
+        $('count').textContent = (family === '*' ? '全部版式' : groups[family]) + ' · ' + visible.length
+        const gallery = $('gallery')
+        releaseSheets(gallery)
+        gallery.innerHTML = visible
+          .map(
+            (t) =>
+              '<button class="card" data-template="' +
+              t.id +
+              '" data-active="' +
+              (t.id === applied) +
+              '" aria-label="试用 ' +
+              t.id +
+              ' ' +
+              t.name +
+              (t.id === applied ? '，当前已应用' : '') +
+              '"><div class="thumb" aria-hidden="true">' +
+              paper(t.id) +
+              (t.id === applied ? '<span class="activeTag">✓ 已应用</span>' : '') +
+              '</div><div class="caption"><div class="cardTitle"><span class="code">' +
+              t.id +
+              '</span>' +
+              t.name +
+              '</div><small>' +
+              t.detail +
+              '</small></div></button>',
+          )
+          .join('')
+        observeSheets(gallery)
+        $('empty').hidden = visible.length > 0
+        $('currentName').textContent = byId.get(applied).name
+      }
+      function figure(id, label) {
+        return (
+          '<figure><figcaption><strong>' +
+          label +
+          '</strong><span>' +
+          id +
+          ' ' +
+          byId.get(id).name +
+          '</span></figcaption>' +
+          paper(id) +
+          '</figure>'
+        )
+      }
+      function display() {
+        const t = byId.get(candidate),
+          same = candidate === applied,
+          comparison = compare && !same
+        $('dialogTitle').textContent = t.name + ' · ' + t.id
+        $('dialogDescription').textContent = t.detail
+        const panels = $('panes')
+        releaseSheets(panels)
+        panels.classList.toggle('dual', comparison)
+        panels.classList.toggle('large', magnified)
+        $('zoom').setAttribute('aria-pressed', magnified)
+        panels.innerHTML =
+          (comparison ? figure(applied, '当前模板') : '') + figure(candidate, same ? '当前模板' : '候选模板')
+        $('single').setAttribute('aria-pressed', !comparison)
+        $('compare').setAttribute('aria-pressed', comparison)
+        $('compare').disabled = same
+        $('apply').disabled = same
+        $('apply').textContent = same ? '当前已应用' : '应用到本次演示'
+        const pos = visible.findIndex((t) => t.id === candidate)
+        $('position').textContent = pos < 0 ? '当前模板' : pos + 1 + ' / ' + visible.length
+        $('prev').disabled = pos < 1
+        $('next').disabled = pos < 0 || pos === visible.length - 1
+        observeSheets(panels)
+        $('picker').querySelector('.stage').scrollTop = 0
+      }
+      function openPreview(id, from) {
+        opener = from
+        candidate = id
+        compare = false
+        magnified = false
+        $('toast').hidden = true
+        $('picker').showModal()
+        display()
+        $('close').focus()
+      }
+      function dismiss(prefer) {
+        $('picker').close()
+        const focus = prefer ? document.querySelector('.card[data-template="' + prefer + '"]') : opener
+        if (focus?.isConnected) focus.focus({ preventScroll: true })
+        else $('showCurrent').focus({ preventScroll: true })
+      }
+      function announce(message, canUndo) {
+        clearTimeout(toastTimer)
+        $('live').textContent = message
+        $('notice').textContent = message
+        $('undo').hidden = !canUndo
+        $('toast').hidden = false
+        toastTimer = setTimeout(() => {
+          $('toast').hidden = true
+        }, 7000)
+      }
+      function undo() {
+        if (!history.length || $('picker').open) return
+        applied = history.pop()
+        renderList()
+        announce('已恢复「' + byId.get(applied).name + '」', history.length > 0)
+        if (!history.length) $('showCurrent').focus({ preventScroll: true })
+      }
+      $('gallery').onclick = (e) => {
+        const card = e.target.closest('button[data-template]')
+        if (card) openPreview(card.dataset.template, card)
+      }
+      $('showCurrent').onclick = (e) => openPreview(applied, e.currentTarget)
+      $('search').oninput = renderList
+      $('clear').onclick = () => {
+        family = '*'
+        $('search').value = ''
+        filters()
+        renderList()
+        $('search').focus()
+      }
+      $('close').onclick = $('cancel').onclick = () => dismiss()
+      $('picker').addEventListener('cancel', (e) => {
+        e.preventDefault()
+        dismiss()
+      })
+      $('zoom').onclick = () => {
+        magnified = !magnified
+        display()
+      }
+      $('compare').onclick = () => {
+        compare = true
+        display()
+      }
+      $('single').onclick = () => {
+        compare = false
+        display()
+      }
+      function step(delta) {
+        const i = visible.findIndex((t) => t.id === candidate)
+        if (i < 0 || !visible[i + delta]) return
+        candidate = visible[i + delta].id
+        display()
+      }
+      $('prev').onclick = () => step(-1)
+      $('next').onclick = () => step(1)
+      $('apply').onclick = () => {
+        if (candidate === applied) return
+        history.push(applied)
+        applied = candidate
+        renderList()
+        dismiss(applied)
+        announce('已在演示中应用「' + byId.get(applied).name + '」', true)
+      }
+      $('undo').onclick = undo
+      document.addEventListener('keydown', (e) => {
+        if ($('picker').open) {
+          if (e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            e.preventDefault()
+            step(e.key === 'ArrowLeft' ? -1 : 1)
+          }
+        } else if (
+          (e.metaKey || e.ctrlKey) &&
+          !e.shiftKey &&
+          e.key.toLowerCase() === 'z' &&
+          e.target.tagName !== 'INPUT'
+        ) {
+          e.preventDefault()
+          undo()
+        }
+      })
+      filters()
+      renderList()
+    </script>
+  </body>
+</html>
