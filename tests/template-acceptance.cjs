@@ -71,7 +71,16 @@ async function interaction({ app, page, dir, profile }) {
   assert.deepEqual(stored.templateLayouts, {})
   console.log('PASS T01/T02/T03 all 31 choices, offline compound filters, keyboard and candidate isolation')
 
-  await previewAndApply(page, 'A1')
+  picker = await openPicker(page)
+  await select(picker, 'A1')
+  const apply = button(picker, '应用此模板')
+  await expect(apply).toBeEnabled()
+  // Two deliveries in the same frame exercise the commit guard before unmount.
+  await apply.evaluate((el) => {
+    el.click()
+    el.click()
+  })
+  await expect(readyDocument(page)).toHaveAttribute('data-template-id', 'A1')
   await expect(page.locator('[data-editor-lane="side"]')).toHaveCount(0)
   await target.fill('确认后继续编辑')
   await page.keyboard.press('Meta+z')
