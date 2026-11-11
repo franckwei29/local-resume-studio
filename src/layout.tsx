@@ -1,10 +1,17 @@
-import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { CalendarDays, Globe2, House, Mail, Phone, UserRound, Link as LinkIcon, Info } from 'lucide-react'
 import '@fontsource-variable/noto-sans-sc/wght.css'
 import '@fontsource-variable/noto-serif-sc/wght.css'
 import './paper.css'
 import { type Photo, type Resume } from './model'
-import { fontFamily, paginate, resetMeasurementCache, type PositionedLine } from './pagination'
+import {
+  fontFamily,
+  paginate,
+  resetMeasurementCache,
+  type Frame,
+  type Layout,
+  type PositionedLine,
+} from './pagination'
 import { photoGeometry } from './photoGeometry'
 
 const mm = (value: number) => value + 'mm'
@@ -20,14 +27,20 @@ const icons: Record<string, typeof Info> = {
 const safeHref = (href?: string) => (href && /^(?:https?:\/\/|mailto:)/i.test(href) ? href : undefined)
 const readyGlyphs = new Map<string, Set<string>>()
 const imageSizes = new Map<string, [number, number]>()
-function Avatar({ photo, y }: { photo: Photo; y: number }) {
+function Avatar({ photo, frame, square }: { photo: Photo; frame: Frame; square?: boolean }) {
   const [size, setSize] = useState<[number, number]>(() => imageSizes.get(photo.src) ?? [1, 1])
-  const geometry = photoGeometry(photo, size[0], size[1], 42)
+  const geometry = photoGeometry(photo, size[0], size[1], frame.width, frame.height)
   return (
     <div
       className="paper-photo"
       data-source-id="header"
-      style={{ left: mm(16), top: mm(y + 1.5), width: mm(42), height: mm(42) }}
+      style={{
+        left: mm(frame.x),
+        top: mm(frame.y),
+        width: mm(frame.width),
+        height: mm(frame.height),
+        borderRadius: square ? 0 : undefined,
+      }}
     >
       <img
         alt=""
@@ -49,11 +62,13 @@ function Avatar({ photo, y }: { photo: Photo; y: number }) {
     </div>
   )
 }
-function Line({ line, accent }: { line: PositionedLine; accent: string }) {
+function Line({ line, accent, prefix }: { line: PositionedLine; accent: string; prefix: string }) {
   const Icon = line.icon ? (icons[line.icon] ?? Info) : null
   return (
     <div
       className="paper-line"
+      id={line.anchor ? prefix + line.anchor : undefined}
+      data-line-role={line.role}
       data-source-id={line.id}
       data-lane={line.lane}
       data-y={line.y.toFixed(2)}
@@ -78,9 +93,20 @@ function Line({ line, accent }: { line: PositionedLine; accent: string }) {
           color: p.color,
           lineHeight: mm(line.rule ? line.height - 2 : line.height),
         }
-        const url = safeHref(p.href)
+        const url = p.targetId ? '#' + encodeURIComponent(prefix + p.targetId) : safeHref(p.href)
         return url ? (
-          <a key={i} href={url} onClick={(e) => e.preventDefault()} style={style}>
+          <a
+            key={i}
+            href={url}
+            onClick={(e) => {
+              e.preventDefault()
+              if (p.targetId) {
+                e.stopPropagation()
+                document.getElementById(prefix + p.targetId)?.scrollIntoView({ block: 'center' })
+              }
+            }}
+            style={style}
+          >
             {p.text}
           </a>
         ) : (
@@ -107,8 +133,15 @@ export interface PaperProps {
   doc: Resume
   onLocate?: (id: string) => void
   onPageCount?: (n: number) => void
+  onLayout?: (layout: Layout) => void
 }
-export function Paper({ doc, onLocate, onPageCount }: PaperProps) {
+export function Paper({ doc, onLocate, onPageCount, onLayout }: PaperProps) {
+  const prefix = 'paper-' + useId() + '-'
+  const callback = useRef(onLayout)
+  callback.current = onLayout
+  const legacy = !doc.templateId || doc.templateId === '00'
+  const [fontError, setFontError] = useState<Error | null>(null)
+
   const family = fontFamily(doc.style)
   const chars = useMemo(() => documentCharacters(doc), [doc])
   const [generation, setGeneration] = useState(0)
@@ -128,16 +161,25 @@ export function Paper({ doc, onLocate, onPageCount }: PaperProps) {
         resetMeasurementCache()
         if (active) setGeneration((i) => i + 1)
       })
-      .catch((error) => console.error('加载排版字体失败', error))
+      .catch(() => {
+        if (active) setFontError(new Error('本机排版字体加载失败，请重新排版。'))
+      })
     return () => {
       active = false
     }
   }, [needed, family])
-  const { pages, cover } = useMemo(() => paginate(doc), [doc, generation])
+  const layout = useMemo(() => paginate(doc), [doc, generation, !!needed])
+  const { pages, cover } = layout
+  useLayoutEffect(() => {
+    if (!needed && !fontError) callback.current?.(layout)
+  }, [layout, needed, fontError])
+
   useEffect(() => onPageCount?.(pages.length), [pages.length, onPageCount])
+  if (fontError) throw fontError
   return (
     <div
       className="paper-document"
+      data-template-id={doc.templateId || '00'}
       data-layout-ready={needed ? 'false' : 'true'}
       data-revision={doc.revision}
       onClick={
@@ -151,8 +193,27 @@ export function Paper({ doc, onLocate, onPageCount }: PaperProps) {
     >
       {pages.map((page, i) => (
         <div className="paper-page" key={i} data-page-index={i} style={{ fontFamily: '"' + family + '"' }}>
-          <div className="paper-side" />
-          {i === 0 && (cover.title.length > 0 || doc.photo) && (
+          {legacy && <div className="paper-side" />}
+          {page.decorations?.map((box, k) => (
+            <div
+              key={'art-' + k}
+              className="paper-decoration"
+              aria-hidden
+              style={{
+                left: mm(box.x),
+                top: mm(box.y),
+                width: mm(box.width),
+                height: mm(box.height),
+                backgroundColor: box.fill,
+                border: box.stroke ? '0.25mm solid ' + box.stroke : undefined,
+                borderRadius: box.radius ? mm(box.radius) : undefined,
+              }}
+            />
+          ))}
+          {page.portrait && doc.photo && (
+            <Avatar photo={doc.photo} frame={page.portrait} square={doc.templateId === 'B4'} />
+          )}
+          {legacy && i === 0 && (cover.title.length > 0 || doc.photo) && (
             <>
               <svg
                 className="paper-cap"
@@ -187,13 +248,15 @@ export function Paper({ doc, onLocate, onPageCount }: PaperProps) {
                   {text}
                 </div>
               ))}
-              {doc.photo && <Avatar photo={doc.photo} y={cover.photoY} />}
+              {doc.photo && (
+                <Avatar photo={doc.photo} frame={{ x: 16, y: cover.photoY + 1.5, width: 42, height: 42 }} />
+              )}
             </>
           )}
           {page.lines.map((line, j) => (
-            <Line key={line.id + '-' + j} line={line} accent={doc.style.color} />
+            <Line key={line.id + '-' + j} line={line} accent={doc.style.color} prefix={prefix} />
           ))}
-          {i === pages.length - 1 && (
+          {legacy && i === pages.length - 1 && (
             <svg className="paper-foot-curve" viewBox="0 0 70 12" preserveAspectRatio="none" aria-hidden>
               <path d="M0 0Q35 15 70 0V12H0Z" fill={doc.style.color} />
             </svg>

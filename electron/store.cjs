@@ -2,6 +2,7 @@ const { DatabaseSync } = require('node:sqlite')
 const { randomUUID, createHash } = require('node:crypto')
 const { mkdirSync, readFileSync } = require('node:fs')
 const path = require('node:path')
+const templates = new Set(require('./templates.json').map((template) => template.id))
 
 const kinds = new Set([
   'personal',
@@ -22,7 +23,6 @@ const styleRanges = {
   itemGap: [0, 6],
   paragraphGap: [0, 3],
   sectionGap: [2, 9],
-  margin: [4, 9],
 }
 const string = (value) => typeof value === 'string'
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -58,8 +58,38 @@ function mapImages(doc, transform) {
   }
   return doc
 }
+function supportedTemplate(id, version) {
+  check(templates.has(id) && version === 1, '当前版本无法读取模板或其版次，请更新简历工坊。')
+}
+function validateStyle(st, templateId) {
+  const [minMargin, maxMargin] = templateId === '00' ? [4, 9] : [8, 20]
+  check(
+    object(st) &&
+      ['serif', 'sans'].includes(st.font) &&
+      /^#[\da-f]{6}$/i.test(st.color) &&
+      typeof st.pageNumbers === 'boolean' &&
+      finite(st.margin) &&
+      st.margin >= minMargin &&
+      st.margin <= maxMargin &&
+      Object.entries(styleRanges).every(
+        ([key, [low, high]]) => finite(st[key]) && st[key] >= low && st[key] <= high,
+      ),
+    '排版参数',
+  )
+}
+function upgradeLegacy(doc) {
+  return { ...doc, schemaVersion: 2, templateId: '00', templateVersion: 1, templateLayouts: {} }
+}
 function validate(doc) {
-  check(object(doc) && doc.schemaVersion === 1, '不支持的数据版本')
+  check(object(doc) && [1, 2].includes(doc.schemaVersion), '不支持的数据版本，请更新简历工坊。')
+  if (doc.schemaVersion === 1) {
+    check(
+      doc.templateId === undefined && doc.templateVersion === undefined && doc.templateLayouts === undefined,
+      '旧格式的模板数据无效',
+    )
+    doc = upgradeLegacy(doc)
+  }
+  supportedTemplate(doc.templateId, doc.templateVersion)
   const ids = new Set()
   function node(item) {
     check(object(item) && string(item.id) && item.id.length && !ids.has(item.id), '条目标识缺失或重复')
@@ -96,17 +126,7 @@ function validate(doc) {
       (doc.trashed === null || finite(doc.trashed)),
     '版本或时间',
   )
-  const st = doc.style
-  check(
-    object(st) &&
-      ['serif', 'sans'].includes(st.font) &&
-      /^#[\da-f]{6}$/i.test(st.color) &&
-      typeof st.pageNumbers === 'boolean' &&
-      Object.entries(styleRanges).every(
-        ([key, [low, high]]) => finite(st[key]) && st[key] >= low && st[key] <= high,
-      ),
-    '排版参数',
-  )
+  validateStyle(doc.style, doc.templateId)
   if (doc.photo !== null) {
     check(
       object(doc.photo) &&
@@ -144,6 +164,25 @@ function validate(doc) {
       blocks(e.blocks)
     }
   }
+  check(object(doc.templateLayouts), '缺少模板布局')
+  const sections = new Set(doc.sections.map((s) => s.id))
+  const isSingle = (id) => !['0', 'B', 'C'].includes(id[0])
+  check(!isSingle(doc.templateId) || doc.sections.every((s) => s.lane === 'main'), '单栏模板只支持正文区')
+  for (const [id, layout] of Object.entries(doc.templateLayouts)) {
+    check(id !== doc.templateId && object(layout), '模板布局重复或无效')
+    supportedTemplate(id, layout.version)
+    validateStyle(layout.style, id)
+    check(Array.isArray(layout.sections), '模板缺少栏目位置')
+    const placed = new Set()
+    for (const placement of layout.sections) {
+      check(
+        object(placement) && sections.has(placement.id) && !placed.has(placement.id),
+        '模板栏目位置缺失或重复',
+      )
+      check(placement.lane === 'main' || (placement.lane === 'side' && !isSingle(id)), '模板栏位无效')
+      placed.add(placement.id)
+    }
+  }
   return doc
 }
 
@@ -159,14 +198,20 @@ function freshCopy(source) {
     }
   }
   id(copy)
+  const sectionIds = new Map()
   for (const sec of copy.sections) {
+    const oldId = sec.id
     id(sec)
+    sectionIds.set(oldId, sec.id)
     resetBlocks(sec.intro)
     resetBlocks(sec.ending)
     for (const e of sec.entries) {
       id(e)
       resetBlocks(e.blocks)
     }
+  }
+  for (const layout of Object.values(copy.templateLayouts)) {
+    for (const placement of layout.sections) placement.id = sectionIds.get(placement.id)
   }
   return Object.assign(copy, { created: Date.now(), modified: Date.now(), revision: 0, trashed: null })
 }
@@ -206,6 +251,17 @@ class Store {
   initialize(publicSeed) {
     const chosen = this.privateSeed() || validate(publicSeed)
     this.transaction(() => {
+      const { user_version: version } = this.db.prepare('PRAGMA user_version').get()
+      check(version <= 2, '该数据库需要更新版本的简历工坊。')
+      if (version < 2) {
+        const update = this.db.prepare('UPDATE docs SET snapshot=? WHERE id=?')
+        for (const row of this.db.prepare('SELECT id,snapshot FROM docs').all()) {
+          const packed = JSON.parse(row.snapshot)
+          validate(this.readSnapshot(row))
+          if (packed.schemaVersion === 1) update.run(JSON.stringify(upgradeLegacy(packed)), row.id)
+        }
+        this.db.exec('PRAGMA user_version=2')
+      }
       if (!this.db.prepare("SELECT 1 FROM settings WHERE key='initialized'").get()) {
         this.put(freshCopy(chosen), 0)
         this.db.prepare('INSERT INTO settings(key,value) VALUES (?,?)').run('initialized', '1')

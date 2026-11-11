@@ -66,8 +66,16 @@ export interface Style {
   color: string
   pageNumbers: boolean
 }
+export interface TemplateLayout {
+  version: 1
+  style: Style
+  sections: { id: string; lane: Lane }[]
+}
 export interface Resume {
-  schemaVersion: 1
+  schemaVersion: 2
+  templateId: string
+  templateVersion: 1
+  templateLayouts: Record<string, TemplateLayout>
   id: string
   name: string
   target: string
@@ -133,7 +141,10 @@ export const section = (kind: Kind, lane: Lane): Section => ({
 export function blank(name = '新简历'): Resume {
   const now = Date.now()
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    templateId: '00',
+    templateVersion: 1,
+    templateLayouts: {},
     id: uid(),
     name,
     target: '',

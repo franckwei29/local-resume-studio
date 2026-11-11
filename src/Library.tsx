@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import type { Resume } from './model'
 import { Paper } from './layout'
+import { getTemplate } from './templates'
 export type Action =
   'edit' | 'preview' | 'export' | 'copy' | 'rename' | 'trash' | 'restore' | 'remove' | 'backup'
 type Props = {
@@ -71,6 +72,8 @@ function Card({ doc, trash, onAction }: { doc: Resume; trash: boolean; onAction:
           </button>
           <div className="doc-sub">
             {doc.target || '个人简历'}
+            <span>·</span>
+            {getTemplate(doc.templateId).name}
             <span>·</span>
             {pages || '…'} 页
           </div>

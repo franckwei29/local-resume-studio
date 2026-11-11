@@ -14,6 +14,7 @@ import {
   Maximize2,
   Minus,
   PanelLeft,
+  PanelsTopLeft,
   Plus,
   Redo2,
   SlidersHorizontal,
@@ -24,6 +25,9 @@ import { blank, type Resume } from './model'
 import { copyResume, exportIssue, freeName } from './document'
 import { publicSeed } from './seed'
 import { Paper } from './layout'
+import type { Layout } from './pagination'
+import { TemplatePicker } from './TemplatePicker'
+import { getTemplate, switchTemplate } from './templates'
 import { Editor, StylePanel } from './Editor'
 import { ImportReview } from './ImportReview'
 import { Library, type Action } from './Library'
@@ -38,25 +42,54 @@ type Dialog = {
   confirm?: string
   detail?: string
   danger?: boolean
-  run: (name: string, mode: string) => Promise<void>
+  run: (name: string, mode: string, templateId?: string) => Promise<void>
 }
-type Notice = { text: string; action?: string; run?: () => void }
-function Modal({ dialog, onClose, onImport }: { dialog: Dialog; onClose: () => void; onImport: () => void }) {
+type Notice = { text: string; action?: string; run?: () => void; generation?: number }
+function Modal({
+  dialog,
+  baseline,
+  onClose,
+  onImport,
+}: {
+  dialog: Dialog
+  baseline: Resume
+  onClose: () => void
+  onImport: () => void
+}) {
   const [value, setValue] = useState(dialog.value || ''),
     [mode, setMode] = useState('seed'),
+    [templateId, chooseTemplate] = useState<string>(),
+    [selecting, select] = useState(false),
+    [sample] = useState(() => (dialog.kind === 'new' ? publicSeed() : baseline)),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('')
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setBusy(true)
     try {
-      await dialog.run(value.trim(), mode)
+      await dialog.run(value.trim(), mode, templateId)
       onClose()
     } catch (e) {
       setError(String(e).replace(/^Error: /, ''))
       setBusy(false)
     }
   }
+  const preview = React.useMemo(() => {
+    const source = mode === 'seed' ? baseline : sample
+    return templateId ? switchTemplate(source, templateId) : source
+  }, [mode, baseline, sample, templateId])
+  if (selecting)
+    return (
+      <TemplatePicker
+        doc={preview}
+        sample={mode === 'blank'}
+        onClose={() => select(false)}
+        onApply={(next) => {
+          chooseTemplate(next.templateId)
+          select(false)
+        }}
+      />
+    )
   return (
     <div
       className="overlay"
@@ -84,7 +117,10 @@ function Modal({ dialog, onClose, onImport }: { dialog: Dialog; onClose: () => v
                   type="button"
                   key={String(key)}
                   className={mode === key ? 'chosen' : ''}
-                  onClick={() => setMode(String(key))}
+                  onClick={() => {
+                    setMode(String(key))
+                    chooseTemplate(undefined)
+                  }}
                 >
                   <Symbol size={22} />
                   {String(label)}
@@ -94,6 +130,14 @@ function Modal({ dialog, onClose, onImport }: { dialog: Dialog; onClose: () => v
             <button type="button" onClick={onImport}>
               <FileUp size={22} />
               从文件导入
+            </button>
+          </div>
+        )}
+        {dialog.kind === 'new' && (
+          <div className="new-template">
+            <span>模板 · {getTemplate(preview.templateId).name}</span>
+            <button type="button" className="secondary" onClick={() => select(true)}>
+              选择模板
             </button>
           </div>
         )}
@@ -141,6 +185,10 @@ function App() {
     [width, setWidth] = useState(720),
     [split, setSplit] = useState(42),
     [narrowPreview, setNarrowPreview] = useState(false)
+  const [picker, setPicker] = useState<{ anchor: string } | null>(null)
+  const pickerTrigger = useRef<HTMLButtonElement>(null)
+  const afterSwitch = useRef('')
+  const [featuredIds, setFeaturedIds] = useState<ReadonlySet<string>>(new Set())
   const [printing, setPrinting] = useState(false),
     [pdf, setPdf] = useState(''),
     [autoExport, setAutoExport] = useState(false)
@@ -185,10 +233,10 @@ function App() {
       title: '新建简历',
       value: freeName('新简历', docs),
       confirm: '创建并编辑',
-      run: async (name, mode) => {
+      run: async (name, mode, id) => {
         checkName(name)
         const d = mode === 'seed' && baseline ? copyResume(baseline, name) : blank(name)
-        const saved = await window.studio.save(d)
+        const saved = await window.studio.save(id ? switchTemplate(d, id) : d)
         updateDoc(saved)
         gotoEditor(saved)
       },
@@ -275,6 +323,39 @@ function App() {
       duration: 1350,
     })
   }
+  function openPicker() {
+    const active = document.activeElement?.closest<HTMLElement>('[data-editor-id]')
+    ;(document.activeElement as HTMLElement)?.blur()
+    const top = viewport.current?.getBoundingClientRect().top ?? 0
+    const visiblePage = document.querySelectorAll('#print-root .paper-page')[Math.max(0, page - 1)]
+    const lines = visiblePage?.querySelectorAll<HTMLElement>('.paper-line[data-source-id]')
+    const anchor =
+      active?.dataset.editorId ||
+      (page === 1 && (viewport.current?.scrollTop ?? 0) < 32 ? 'header' : '') ||
+      [...(lines ?? [])].find((line) => line.getBoundingClientRect().bottom > top)?.dataset.sourceId ||
+      ''
+    setPicker({ anchor })
+  }
+  function closePicker() {
+    setPicker(null)
+    requestAnimationFrame(() => pickerTrigger.current?.focus({ preventScroll: true }))
+  }
+  const alignAfterSwitch = useCallback((layout: Layout) => {
+    const promoted = layout.featuredIds ?? []
+    setFeaturedIds((old) =>
+      old.size === promoted.length && promoted.every((id) => old.has(id)) ? old : new Set(promoted),
+    )
+    if (!afterSwitch.current) return
+    const id = afterSwitch.current
+    afterSwitch.current = ''
+    if (id === 'header') {
+      viewport.current?.scrollTo(0, 0)
+      return
+    }
+    document
+      .querySelector('#print-root [data-source-id="' + CSS.escape(id) + '"]')
+      ?.scrollIntoView({ block: 'center' })
+  }, [])
   const navigatePage = (n: number) => {
     if (n < 1 || n > pages) return
     const el = document.querySelectorAll<HTMLElement>('#print-root .paper-page')[n - 1]
@@ -342,7 +423,7 @@ function App() {
   }, [view, narrowPreview])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (dialog || printing) return
+      if (dialog || printing || picker) return
       if (view === 'edit' && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault()
         session.travel(e.shiftKey)
@@ -402,6 +483,7 @@ function App() {
       ) : (
         doc && (
           <div
+            inert={!!picker || printing || undefined}
             className={
               'workspace ' + (view === 'preview' ? 'full-view ' : '') + (narrowPreview ? 'show-paper' : '')
             }
@@ -510,7 +592,13 @@ function App() {
                         查看预览
                       </button>
                     </div>
-                    <Editor doc={doc} onChange={session.change} focusId={focus} onLocate={locatePaper} />
+                    <Editor
+                      doc={doc}
+                      onChange={session.change}
+                      focusId={focus}
+                      onLocate={locatePaper}
+                      featuredIds={featuredIds}
+                    />
                   </aside>
                   <div
                     className="splitter"
@@ -535,13 +623,22 @@ function App() {
                 <div className="preview-heading">
                   <span>
                     <span className="live-dot" />
-                    简历预览
+                    {view === 'preview' ? getTemplate(doc.templateId).name : '简历预览'}
                   </span>
                   <div className="row">
                     {view === 'edit' && (
                       <>
                         <button className="narrow-switch" onClick={() => setNarrowPreview(false)}>
                           返回编辑
+                        </button>
+                        <button
+                          ref={pickerTrigger}
+                          className="paper-action template-trigger"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={openPicker}
+                        >
+                          <PanelsTopLeft size={15} />
+                          模板 · {getTemplate(doc.templateId).name}
                         </button>
                         <button
                           className={'paper-action ' + (styleOpen ? 'selected' : '')}
@@ -581,9 +678,16 @@ function App() {
                     className="paper-sizing"
                     style={{ width: 793.7 * scale, height: ((1122.52 + 16) * pages - 16) * scale }}
                   >
-                    <div id="print-root" style={{ transform: 'scale(' + scale + ')' }}>
+                    <div
+                      id="print-root"
+                      data-print-document={doc.id}
+                      data-print-style={JSON.stringify(Object.entries(doc.style).sort())}
+                      data-template-version={doc.templateVersion ?? 1}
+                      style={{ transform: 'scale(' + scale + ')' }}
+                    >
                       <Paper
                         doc={doc}
+                        onLayout={alignAfterSwitch}
                         onPageCount={setPages}
                         onLocate={view === 'edit' ? locate : undefined}
                       />
@@ -652,9 +756,29 @@ function App() {
           </div>
         )
       )}
+      {picker && doc && (
+        <TemplatePicker
+          doc={doc}
+          anchorId={picker.anchor}
+          onClose={closePicker}
+          onApply={(next) => {
+            afterSwitch.current = picker.anchor
+            session.change(next)
+            setPdf('')
+            closePicker()
+            setNotice({
+              text: '已应用 ' + getTemplate(next.templateId).name,
+              generation: session.generation.current,
+              action: '撤销',
+              run: () => session.travel(false),
+            })
+          }}
+        />
+      )}
       {dialog && (
         <Modal
           dialog={dialog}
+          baseline={baseline}
           onClose={() => setDialog(null)}
           onImport={() => {
             setDialog(null)
@@ -678,7 +802,7 @@ function App() {
           </button>
         </div>
       )}
-      {notice && (
+      {notice && (notice.generation === undefined || notice.generation === session.generation.current) && (
         <div className="toast" role="status">
           {notice.text}
           {notice.action && (

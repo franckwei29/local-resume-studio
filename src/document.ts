@@ -1,4 +1,5 @@
 import { editorErrors } from './editorTree'
+import { getTemplate } from './templates'
 import { type Resume, type Entry, type Block, uid } from './model'
 export function copyResume(source: Resume, name: string): Resume {
   const doc = structuredClone(source),
@@ -8,13 +9,23 @@ export function copyResume(source: Resume, name: string): Resume {
     b.id = uid()
     b.children.forEach(copyBlock)
   }
+  const sectionIds = new Map<string, string>()
   for (const s of doc.sections) {
+    const originalId = s.id
     s.id = uid()
+    sectionIds.set(originalId, s.id)
     s.intro.forEach(copyBlock)
     s.ending.forEach(copyBlock)
     for (const e of s.entries) {
       e.id = uid()
       e.blocks.forEach(copyBlock)
+    }
+  }
+  for (const layout of Object.values(doc.templateLayouts)) {
+    for (const placement of layout.sections) {
+      const newId = sectionIds.get(placement.id)
+      if (!newId) throw Error('栏目布局与简历内容不一致。')
+      placement.id = newId
     }
   }
   return doc
@@ -41,7 +52,8 @@ function hasEntry(e: Entry) {
 export function exportIssue(doc: Resume): { id: string; message: string } | null {
   const error = editorErrors(doc)[0]
   if (error) return error
-  let printable = !!doc.photo
+  const template = getTemplate(doc.templateId)
+  let printable = !!doc.photo && template.photo
   for (const s of doc.sections.filter((s) => !s.hidden)) {
     printable ||=
       s.intro.some(printableBlock) ||
@@ -49,5 +61,12 @@ export function exportIssue(doc: Resume): { id: string; message: string } | null
       (s.kind === 'target' && !!doc.target.trim())
     printable ||= s.entries.some((e) => !e.hidden && !!hasEntry(e))
   }
-  return printable ? null : { id: '', message: '请先添加个人信息或经历，再导出 PDF。' }
+  if (printable) return null
+  return {
+    id: '',
+    message:
+      doc.photo && !template.photo
+        ? '当前模板没有可导出的内容，可换带照模板或补充文字。'
+        : '请先添加个人信息或经历，再导出 PDF。',
+  }
 }

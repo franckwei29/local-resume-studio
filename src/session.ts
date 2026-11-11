@@ -108,6 +108,7 @@ export function useSession(saved: (d: Resume) => void) {
   return {
     doc,
     current,
+    generation,
     load,
     change,
     flush,

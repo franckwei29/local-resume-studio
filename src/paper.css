@@ -137,3 +137,7 @@
     break-after: auto;
   }
 }
+.paper-decoration {
+  position: absolute;
+  pointer-events: none;
+}

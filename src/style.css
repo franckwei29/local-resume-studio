@@ -811,3 +811,12 @@ select {
     break-after: auto;
   }
 }
+
+.new-template {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0;
+  font-size: 14px;
+}

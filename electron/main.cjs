@@ -78,6 +78,14 @@ function setupIPC() {
     exporting = true
     try {
       const contents = win.webContents
+      const expectedStyle = JSON.stringify(Object.entries(doc.style).sort())
+      const signature = JSON.stringify([
+        doc.id,
+        doc.templateId || '00',
+        String(doc.templateVersion ?? 1),
+        expectedStyle,
+        String(revision),
+      ])
       await contents.executeJavaScript(`(async()=>{
         const root=document.getElementById('print-root');
         if(!root) throw new Error('请打开需要导出的简历预览。');
@@ -85,7 +93,8 @@ function setupIPC() {
         const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
         while(true) {
           const paper=root.querySelector('.paper-document');
-          if(paper?.dataset.layoutReady==='true' && Number(paper.dataset.revision)===${Number(revision)} && paper.querySelector('.paper-page')) break;
+          const signature=JSON.stringify([root.dataset.printDocument, paper?.dataset.templateId, root.dataset.templateVersion, root.dataset.printStyle, paper?.dataset.revision]);
+          if(paper?.dataset.layoutReady==='true' && signature===${JSON.stringify(signature)} && paper.querySelector('.paper-page')) break;
           if(performance.now()>deadline) throw new Error('当前版本排版尚未完成，请重试。');
           await frame();
         }

@@ -28,7 +28,8 @@ import {
   UserRound,
   X,
 } from 'lucide-react'
-import { block, defaults, printedTitle, titles } from './model'
+import { block, printedTitle, titles } from './model'
+import { forgetTemplateSection, getTemplate, templateDefaults } from './templates'
 import type { Block, Entry, Kind, Lane, Photo, Resume, Section, Style } from './model'
 import {
   duplicateTreeNode,
@@ -51,12 +52,14 @@ export interface EditorProps {
   doc: Resume
   onChange: (next: Resume, group?: string) => void
   focusId?: string | null
+  featuredIds?: ReadonlySet<string>
   onLocate?: (id: string) => void
 }
 type Change = (change: (draft: Resume) => void, group?: string) => void
 type Confirm = { title: string; body: string; action: () => void }
 type EditorContextType = {
   doc: Resume
+  featuredIds?: ReadonlySet<string>
   change: Change
   expanded: Set<string>
   toggle: (id: string) => void
@@ -313,19 +316,19 @@ function SortRow({
     ]
     if (sectionNode) {
       const dest = node.lane === 'side' ? 'main' : 'side'
-      items.push(
-        {
-          label: dest === 'side' ? '移至简历左栏' : '移至简历右栏',
+      if (getTemplate(doc.templateId ?? '00').columns !== 'single') {
+        items.push({
+          label: '移至' + laneName(doc, dest),
           action: () => change((d) => moveToLane(d, node.id, dest)),
+        })
+      }
+      items.push({
+        label: '修改模块标题',
+        action: () => {
+          if (!opened) toggle(node.id)
+          setRename(true)
         },
-        {
-          label: '修改模块标题',
-          action: () => {
-            if (!opened) toggle(node.id)
-            setRename(true)
-          },
-        },
-      )
+      })
     }
     if (extra) items.push(...extra)
     items.push(
@@ -363,6 +366,7 @@ function SortRow({
       change((d) => {
         const info = findNode(d, node.id)!
         info.siblings.splice(info.siblings.indexOf(info.node), 1)
+        if (info.collection === 'section') forgetTemplateSection(d, info.node.id)
         if ('kind' in node && node.kind === 'target') d.target = ''
       })
     items.push({
@@ -421,6 +425,7 @@ function SortRow({
         >
           {icon && <span className="re-section-icon">{icon}</span>}
           <span className="re-caption">{caption}</span>
+          {ctx.featuredIds?.has(node.id) && <span className="re-count">首页导读</span>}
           {node.hidden && <EyeOff size={12} />}
           {summary && <span className="re-count">{summary}</span>}
           {opened ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
@@ -893,10 +898,18 @@ function SectionCard({ s }: { s: Section }) {
     </SortRow>
   )
 }
+function laneName(doc: Resume, lane: Lane) {
+  const template = getTemplate(doc.templateId ?? '00')
+  if (template.columns === 'single') return '正文'
+  const sideOnLeft = template.columns === 'left'
+  const direction = (lane === 'side') === sideOnLeft ? '左' : '右'
+  if (template.id === '00') return '简历' + direction + '栏'
+  return (lane === 'side' ? '侧栏' : '主栏') + '（' + direction + '）'
+}
 function LaneGroup({ lane }: { lane: Lane }) {
   const { doc, change, reveal, dropMark } = useEditor()
   const sections = doc.sections.filter((s) => s.lane === lane),
-    name = '简历' + (lane === 'side' ? '左栏' : '右栏')
+    name = laneName(doc, lane)
   function add(kind: Kind, custom?: string) {
     const s = newSection(kind, lane, custom)
     if (custom && ['证书', '课程', '社会实践'].includes(custom)) s.entries[0].fields.format = 'dated'
@@ -915,7 +928,13 @@ function LaneGroup({ lane }: { lane: Lane }) {
   return (
     <section className="re-lane" data-editor-lane={lane}>
       <header className="re-lanehead">
-        {lane === 'side' ? <PanelLeft size={16} /> : <PanelRight size={16} />}
+        {name === '正文' ? (
+          <AlignLeft size={16} />
+        ) : name.includes('左') ? (
+          <PanelLeft size={16} />
+        ) : (
+          <PanelRight size={16} />
+        )}
         <h3>{name}</h3>
         <span>{sections.length} 个模块</span>
       </header>
@@ -1038,7 +1057,7 @@ function HeaderEditor() {
   )
 }
 
-export function Editor({ doc, onChange, focusId, onLocate }: EditorProps) {
+export function Editor({ doc, onChange, focusId, onLocate, featuredIds }: EditorProps) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
   const [ghost, setGhost] = useState<{ x: number; y: number; text: string } | null>(null),
     [dropMark, setDropMark] = useState(''),
@@ -1200,6 +1219,7 @@ export function Editor({ doc, onChange, focusId, onLocate }: EditorProps) {
     <C.Provider
       value={{
         doc,
+        featuredIds,
         change,
         expanded,
         toggle,
@@ -1220,8 +1240,11 @@ export function Editor({ doc, onChange, focusId, onLocate }: EditorProps) {
             document.body,
           )}
         <HeaderEditor />
-        <LaneGroup lane="side" />
-        <LaneGroup lane="main" />
+        {getTemplate(doc.templateId ?? '00').columns === 'left' && <LaneGroup key="side-left" lane="side" />}
+        <LaneGroup key="main" lane="main" />
+        {getTemplate(doc.templateId ?? '00').columns === 'right' && (
+          <LaneGroup key="side-right" lane="side" />
+        )}
         {message && (
           <div className="re-toast" role="status">
             {message}
@@ -1291,44 +1314,49 @@ export function StylePanel({ doc, onChange }: { doc: Resume; onChange: EditorPro
           <option value="serif">思源宋体 · Serif</option>
         </select>
       </label>
-      {controls.map(([key, label, unit, min, max, step]) => (
-        <div className="re-slider" key={key}>
-          <div>
-            <label htmlFor={'style-' + key}>{label}</label>
-            <output>
-              {doc.style[key]} {unit}
-            </output>
+      {controls.map(([key, label, unit, defaultMin, defaultMax, step]) => {
+        const differentMargin = key === 'margin' && (doc.templateId ?? '00') !== '00'
+        const min = differentMargin ? 8 : defaultMin
+        const max = differentMargin ? 20 : defaultMax
+        return (
+          <div className="re-slider" key={key}>
+            <div>
+              <label htmlFor={'style-' + key}>{label}</label>
+              <output>
+                {doc.style[key]} {unit}
+              </output>
+            </div>
+            <div>
+              <button
+                aria-label={'减小' + label}
+                disabled={doc.style[key] <= min}
+                onClick={() => set(key, Math.max(min, Number((doc.style[key] - step).toFixed(2))))}
+              >
+                <Minus size={12} />
+              </button>
+              <input
+                id={'style-' + key}
+                type="range"
+                min={min}
+                max={max}
+                step={step}
+                value={doc.style[key]}
+                onPointerDown={() => {
+                  gesture.current = crypto.randomUUID()
+                }}
+                onChange={(e) => set(key, Number(e.target.value), 'style.' + key + '.' + gesture.current)}
+              />
+              <button
+                aria-label={'增大' + label}
+                disabled={doc.style[key] >= max}
+                onClick={() => set(key, Math.min(max, Number((doc.style[key] + step).toFixed(2))))}
+              >
+                <Plus size={12} />
+              </button>
+            </div>
           </div>
-          <div>
-            <button
-              aria-label={'减小' + label}
-              disabled={doc.style[key] <= min}
-              onClick={() => set(key, Math.max(min, Number((doc.style[key] - step).toFixed(2))))}
-            >
-              <Minus size={12} />
-            </button>
-            <input
-              id={'style-' + key}
-              type="range"
-              min={min}
-              max={max}
-              step={step}
-              value={doc.style[key]}
-              onPointerDown={() => {
-                gesture.current = crypto.randomUUID()
-              }}
-              onChange={(e) => set(key, Number(e.target.value), 'style.' + key + '.' + gesture.current)}
-            />
-            <button
-              aria-label={'增大' + label}
-              disabled={doc.style[key] >= max}
-              onClick={() => set(key, Math.min(max, Number((doc.style[key] + step).toFixed(2))))}
-            >
-              <Plus size={12} />
-            </button>
-          </div>
-        </div>
-      ))}
+        )
+      })}
       <label className="re-color">
         <span>主题色</span>
         <input
@@ -1356,7 +1384,10 @@ export function StylePanel({ doc, onChange }: { doc: Resume; onChange: EditorPro
         />
         在成稿显示页码
       </label>
-      <button className="re-reset" onClick={() => onChange({ ...doc, style: { ...defaults } })}>
+      <button
+        className="re-reset"
+        onClick={() => onChange({ ...doc, style: templateDefaults(doc.templateId ?? '00') })}
+      >
         恢复模板默认值
       </button>
     </div>
