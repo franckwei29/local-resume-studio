@@ -9,3 +9,4 @@ artifacts/
 *.resume.json
 .DS_Store
 CVwizard核心功能需求说明.md
+native/bin/
